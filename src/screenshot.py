@@ -48,6 +48,8 @@ class MainWindow(QGraphicsView):
         self.tooBar = MyToolBar(self)
         self.tooBar.trigger.connect(self.changeAction)
         self.penSetBar = PenSetWidget(self)
+        self.penSetBar.penSizeTrigger.connect(self.changePenSize)
+        self.penSetBar.penColorTrigger.connect(self.changePenColor)
 
 
         self.graphicsScene = QGraphicsScene(0, 0, self.screenPixel.width(), self.screenPixel.height())
@@ -536,6 +538,11 @@ class MainWindow(QGraphicsView):
     def changeAction(self, nextAction):
         self.action = nextAction
 
+    def changePenSize(self, nextPenSize):
+        self.penSizeNow = nextPenSize
+
+    def changePenColor(self, nextPenColor):
+        self.penColorNow = nextPenColor
 
 if __name__ == "__main__":
     a = QApplication(sys.argv)
