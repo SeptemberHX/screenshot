@@ -6,23 +6,22 @@ from PyQt5.QtCore import QObject, pyqtSignal
 class MyToolBar(QWidget):
     """ ToolBar widget """
 
+    # signal
     trigger = pyqtSignal(int)
 
     def __init__(self, parent=None):
-
-        # signal
         super(MyToolBar, self).__init__(parent)
-        self.hlayout = QHBoxLayout()
-        self.parent = parent
 
         self.setWindowFlags(Qt.ToolTip)
-
         self.paddingX = 5
         self.paddingY = 2
         self.iconWidth = self.iconHeight = 28
         self.setFixedHeight(self.iconHeight + 2 * self.paddingY)
         self.setFixedWidth(300)
 
+        self.initWindow()
+
+    def initDrawButtons(self):
         # draw action buttons
         self.rectButton = QPushButton('R', self)
         self.rectButton.setFixedSize(self.iconWidth, self.iconHeight)
@@ -44,10 +43,6 @@ class MyToolBar(QWidget):
         self.textButton.setFixedSize(self.iconWidth, self.iconHeight)
         self.textButton.setCheckable(True)
 
-        self.separator1 = QFrame(self)
-        self.separator1.setFrameShape(QFrame.VLine)
-        self.separator1.setFrameShadow(QFrame.Sunken)
-
         self.drawButtonGroup = QButtonGroup(self)
         self.drawButtonGroup.addButton(self.rectButton)
         self.drawButtonGroup.addButton(self.ellipseButton)
@@ -56,7 +51,15 @@ class MyToolBar(QWidget):
         self.drawButtonGroup.addButton(self.textButton)
         self.drawButtonGroup.buttonClicked.connect(self.buttonToggled)
 
+        self.buttonList = [self.rectButton, self.ellipseButton, self.arrowButton,
+                           self.lineButton, self.textButton]
+
+    def initOtherButtons(self):
         # other action buttons
+        self.separator1 = QFrame(self)
+        self.separator1.setFrameShape(QFrame.VLine)
+        self.separator1.setFrameShadow(QFrame.Sunken)
+
         self.undoButton = QPushButton('U', self)
         self.undoButton.setFixedSize(self.iconWidth, self.iconWidth)
         self.undoButton.toggled.connect(self.buttonToggled)
@@ -74,6 +77,15 @@ class MyToolBar(QWidget):
         self.okButton = QPushButton('O', self)
         self.okButton.setFixedSize(self.iconWidth, self.iconHeight)
 
+    def initWindow(self):
+        self.hlayout = QHBoxLayout()
+        self.hlayout.setSpacing(2)
+        self.hlayout.setContentsMargins(10, 0, 10, 0)
+        self.setLayout(self.hlayout)
+
+        self.initDrawButtons()
+        self.initOtherButtons()
+
         self.hlayout.addWidget(self.rectButton)
         self.hlayout.addWidget(self.ellipseButton)
         self.hlayout.addWidget(self.arrowButton)
@@ -86,17 +98,7 @@ class MyToolBar(QWidget):
         self.hlayout.addWidget(self.cancelButton)
         self.hlayout.addWidget(self.okButton)
 
-
-        self.hlayout.setSpacing(2)
-        self.hlayout.setContentsMargins(10, 0, 10, 0)
-
-        self.setLayout(self.hlayout)
-
-        self.buttonList = [self.rectButton, self.ellipseButton, self.arrowButton,
-                           self.lineButton, self.textButton, self.undoButton]
-
-
-
+    # slots
     def buttonToggled(self, button):
         """
         :type button: QPushButton
@@ -107,9 +109,12 @@ class MyToolBar(QWidget):
             self.trigger.emit(ACTION_RECT)
         elif button == self.ellipseButton:
             self.trigger.emit(ACTION_ELLIPSE)
+        elif button == self.arrowButton:
+            self.trigger.emit(ACTION_ARROW)
+        elif button == self.lineButton:
+            self.trigger.emit(ACTION_LINE)
         else:
             pass
-
 
 
 if __name__ == '__main__':

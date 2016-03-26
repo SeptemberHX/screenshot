@@ -4,6 +4,7 @@ import sys
 from constant import *
 from toolbar import *
 from colorbar import *
+from math import *
 
 
 class MainWindow(QGraphicsView):
@@ -187,6 +188,12 @@ class MainWindow(QGraphicsView):
             elif self.action == ACTION_ELLIPSE:
                 self.drawEllipse(self.startX, self.startY, event.x(), event.y(), False)
                 self.redraw()
+            elif self.action == ACTION_ARROW:
+                self.drawArrow(self.startX, self.startY, event.x(), event.y(), False)
+                self.redraw()
+            elif self.action == ACTION_LINE:
+                self.drawLine(self.startX, self.startY, event.x(), event.y(), False)
+                self.redraw()
         else:
             self.redraw()
 
@@ -220,6 +227,12 @@ class MainWindow(QGraphicsView):
                 self.redraw()
             elif self.action == ACTION_ELLIPSE:
                 self.drawEllipse(self.startX, self.startY, event.x(), event.y(), True)
+                self.redraw()
+            elif self.action == ACTION_ARROW:
+                self.drawArrow(self.startX, self.startY, event.x(), event.y(), True)
+                self.redraw()
+            elif self.action == ACTION_LINE:
+                self.drawLine(self.startX, self.startY, event.x(), event.y(), True)
                 self.redraw()
 
     def detectMousePosition(self, point):
@@ -485,7 +498,50 @@ class MainWindow(QGraphicsView):
         elif step[0] == ACTION_ELLIPSE:
             self.graphicsScene.addEllipse(QRectF(QPointF(step[1], step[2]),
                                               QPointF(step[3], step[4])), step[5])
+        elif step[0] == ACTION_ARROW:
+            arrow = QPolygonF()
 
+            linex = float(step[1] - step[3])
+            liney = float(step[2] - step[4])
+            line = sqrt(pow(linex, 2) + pow(liney, 2))
+
+            # in case to divided by 0
+            if line == 0:
+                return
+
+            sinAngel = liney / line
+            cosAngel = linex / line
+
+            # sideLength is the length of bottom side of the body of an arrow
+            # arrowSize is the size of the head of an arrow, left and right
+            # sides' size is arrowSize, and the bottom side's size is arrowSize / 2
+            sideLength = step[5].width() * 1.5
+            arrowSize = 4
+            bottomSize = arrowSize / 2
+
+            tmpPoint = QPointF(step[3] + arrowSize * sideLength * cosAngel, step[4] + arrowSize * sideLength * sinAngel)
+
+            point1 = QPointF(step[1] + sideLength * sinAngel, step[2] - sideLength * cosAngel)
+            point2 = QPointF(step[1] - sideLength * sinAngel, step[2] + sideLength * cosAngel)
+            point3 = QPointF(tmpPoint.x() - sideLength * sinAngel, tmpPoint.y() + sideLength * cosAngel)
+            point4 = QPointF(tmpPoint.x() - bottomSize * sideLength * sinAngel, tmpPoint.y() + bottomSize * sideLength * cosAngel)
+            point5 = QPointF(step[3], step[4])
+            point6 = QPointF(tmpPoint.x() + bottomSize * sideLength * sinAngel, tmpPoint.y() - bottomSize * sideLength * cosAngel)
+            point7 = QPointF(tmpPoint.x() + sideLength * sinAngel, tmpPoint.y() - sideLength * cosAngel)
+
+            arrow.append(point1)
+            arrow.append(point2)
+            arrow.append(point3)
+            arrow.append(point4)
+            arrow.append(point5)
+            arrow.append(point6)
+            arrow.append(point7)
+            arrow.append(point1)
+
+            self.graphicsScene.addPolygon(arrow, step[5], step[6])
+        elif step[0] == ACTION_LINE:
+            self.graphicsScene.addLine(QLineF(QPointF(step[1], step[2]), QPointF(step[3], step[4])), step[5])
+            
     # draw the size information on the top left corner
     def drawSizeInfo(self):
         sizeInfoAreaWidth = 100
@@ -528,6 +584,45 @@ class MainWindow(QGraphicsView):
         resultRect = rect & tmpRect
         tmp = [ACTION_ELLIPSE, resultRect.topLeft().x(), resultRect.topLeft().y(),
                       resultRect.bottomRight().x(), resultRect.bottomRight().y(),
+                      QPen(QColor(self.penColorNow), int(self.penSizeNow))]
+        if result:
+            self.drawListResult.append(tmp)
+        else:
+            self.drawListProcess = tmp
+
+    def drawArrow(self, x1, x2, y1, y2, result):
+        rect = self.selectedArea.normalized()
+        if y1 <= rect.left():
+            y1 = rect.left()
+        elif y1 >= rect.right():
+            y1 = rect.right()
+
+        if y2 <= rect.top():
+            y2 = rect.top()
+        elif y2 >= rect.bottom():
+            y2 = rect.bottom()
+
+        tmp = [ACTION_ARROW, x1, x2, y1, y2,
+                      QPen(QColor(self.penColorNow), int(self.penSizeNow)),
+                      QBrush(QColor(self.penColorNow))]
+        if result:
+            self.drawListResult.append(tmp)
+        else:
+            self.drawListProcess = tmp
+
+    def drawLine(self, x1, x2, y1, y2, result):
+        rect = self.selectedArea.normalized()
+        if y1 <= rect.left():
+            y1 = rect.left()
+        elif y1 >= rect.right():
+            y1 = rect.right()
+
+        if y2 <= rect.top():
+            y2 = rect.top()
+        elif y2 >= rect.bottom():
+            y2 = rect.bottom()
+
+        tmp = [ACTION_LINE, x1, x2, y1, y2,
                       QPen(QColor(self.penColorNow), int(self.penSizeNow))]
         if result:
             self.drawListResult.append(tmp)

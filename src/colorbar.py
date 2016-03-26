@@ -6,7 +6,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 class PenSetWidget(QWidget):
 
-    penSizeTrigger = pyqtSignal(str)
+    penSizeTrigger = pyqtSignal(int)
     penColorTrigger = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -140,7 +140,7 @@ class PenSetWidget(QWidget):
         self.penColorTrigger.emit(button.objectName())
 
     def sizeButtonToggled(self, button):
-        self.penSizeTrigger.emit(button.objectName())
+        self.penSizeTrigger.emit(int(button.objectName()))
 
 
 if __name__ == '__main__':
