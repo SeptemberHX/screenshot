@@ -39,6 +39,10 @@ class MyToolBar(QWidget):
         self.lineButton.setFixedSize(self.iconWidth, self.iconHeight)
         self.lineButton.setCheckable(True)
 
+        self.freePenButton = QPushButton('F', self)
+        self.freePenButton.setFixedSize(self.iconWidth, self.iconHeight)
+        self.freePenButton.setCheckable(True)
+
         self.textButton = QPushButton('T', self)
         self.textButton.setFixedSize(self.iconWidth, self.iconHeight)
         self.textButton.setCheckable(True)
@@ -48,11 +52,12 @@ class MyToolBar(QWidget):
         self.drawButtonGroup.addButton(self.ellipseButton)
         self.drawButtonGroup.addButton(self.arrowButton)
         self.drawButtonGroup.addButton(self.lineButton)
+        self.drawButtonGroup.addButton(self.freePenButton)
         self.drawButtonGroup.addButton(self.textButton)
         self.drawButtonGroup.buttonClicked.connect(self.buttonToggled)
 
         self.buttonList = [self.rectButton, self.ellipseButton, self.arrowButton,
-                           self.lineButton, self.textButton]
+                           self.freePenButton, self.lineButton, self.textButton]
 
     def initOtherButtons(self):
         # other action buttons
@@ -62,7 +67,7 @@ class MyToolBar(QWidget):
 
         self.undoButton = QPushButton('U', self)
         self.undoButton.setFixedSize(self.iconWidth, self.iconWidth)
-        self.undoButton.toggled.connect(self.buttonToggled)
+        self.undoButton.clicked.connect(self.otherButtonsClicked)
 
         self.saveButton = QPushButton('S', self)
         self.saveButton.setFixedSize(self.iconWidth, self.iconHeight)
@@ -90,6 +95,7 @@ class MyToolBar(QWidget):
         self.hlayout.addWidget(self.ellipseButton)
         self.hlayout.addWidget(self.arrowButton)
         self.hlayout.addWidget(self.lineButton)
+        self.hlayout.addWidget(self.freePenButton)
         self.hlayout.addWidget(self.textButton)
         self.hlayout.addWidget(self.separator1)
         self.hlayout.addWidget(self.undoButton)
@@ -105,6 +111,7 @@ class MyToolBar(QWidget):
         :param button:
         :return:
         """
+        print(button.objectName())
         if button == self.rectButton:
             self.trigger.emit(ACTION_RECT)
         elif button == self.ellipseButton:
@@ -113,8 +120,16 @@ class MyToolBar(QWidget):
             self.trigger.emit(ACTION_ARROW)
         elif button == self.lineButton:
             self.trigger.emit(ACTION_LINE)
+        elif button == self.freePenButton:
+            self.trigger.emit(ACTION_FREEPEN)
+        elif button == self.textButton:
+            self.trigger.emit(ACTION_TEXT)
         else:
             pass
+
+    def otherButtonsClicked(self):
+        if self.sender() == self.undoButton:
+            self.trigger.emit(ACTION_UNDO)
 
 
 if __name__ == '__main__':

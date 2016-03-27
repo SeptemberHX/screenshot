@@ -4,6 +4,8 @@ import sys
 from constant import *
 from toolbar import *
 from colorbar import *
+from textinput import *
+
 from math import *
 
 
@@ -31,8 +33,9 @@ class MainWindow(QGraphicsView):
 
         self.startX, self.startY = 0, 0  # the point where you start
         self.endX, self.endY = 0, 0  # the point where you end
-
+        self.pointPath = QPainterPath()  # the point mouse passes, used by draw free line
         self.itemsToRemove = []  # the items that should not draw on screenshot picture
+        self.textPosition = None
 
         # Init window
         self.getscreenshot()
@@ -52,6 +55,10 @@ class MainWindow(QGraphicsView):
         self.penSetBar.penSizeTrigger.connect(self.changePenSize)
         self.penSetBar.penColorTrigger.connect(self.changePenColor)
 
+        self.textInput = TextInput(self)
+        self.textInput.inputChanged.connect(self.textChange)
+        self.textInput.cancelPressed.connect(self.cancelInput)
+        self.textInput.okPressed.connect(self.okInput)
 
         self.graphicsScene = QGraphicsScene(0, 0, self.screenPixel.width(), self.screenPixel.height())
 
@@ -82,10 +89,9 @@ class MainWindow(QGraphicsView):
         if self.action == ACTION_SELECT:
             if self.mousePosition == OUTSIDE_AREA:
                 self.mousePressed = True
-
                 self.selectedArea = QRect()
                 self.selectedArea.setTopLeft(QPoint(event.x(), event.y()))
-                self.selectedArea.setBottomRight(self.selectedArea.topLeft())
+                self.selectedArea.setBottomRight(QPoint(event.x(), event.y()))
                 self.redraw()
             elif self.mousePosition == INSIDE_AREA:
                 self.mousePressed = True
@@ -94,9 +100,21 @@ class MainWindow(QGraphicsView):
         elif self.action == ACTION_MOVE_SELECTED:
             if self.mousePosition == OUTSIDE_AREA:
                 self.action = ACTION_SELECT
+                self.selectedArea = QRect()
+                self.selectedArea.setTopLeft(QPoint(event.x(), event.y()))
+                self.selectedArea.setBottomRight(QPoint(event.x(), event.y()))
+                self.redraw()
             self.mousePressed = True
         elif self.action in DRAW_ACTION:
             self.mousePressed = True
+            if self.action == ACTION_FREEPEN:
+                self.pointPath = QPainterPath()
+                self.pointPath.moveTo(QPoint(event.x(), event.y()))
+            elif self.action == ACTION_TEXT:
+                if self.textPosition is None:
+                    self.textPosition = QPoint(event.x(), event.y())
+                    self.textInput.hasFocus()
+                    self.redraw()
 
     def mouseMoveEvent(self, event):
         """
@@ -108,7 +126,7 @@ class MainWindow(QGraphicsView):
         if self.action is None:
             self.action = ACTION_SELECT
 
-        if not self.mousePressed and self.action != ACTION_SELECT:
+        if not self.mousePressed:
             point = QPoint(event.x(), event.y())
             self.detectMousePosition(point)
             self.setCursorStyle()
@@ -194,7 +212,25 @@ class MainWindow(QGraphicsView):
             elif self.action == ACTION_LINE:
                 self.drawLine(self.startX, self.startY, event.x(), event.y(), False)
                 self.redraw()
+            elif self.action == ACTION_FREEPEN:
+                y1, y2 = event.x(), event.y()
+                rect = self.selectedArea.normalized()
+                if y1 <= rect.left():
+                    y1 = rect.left()
+                elif y1 >= rect.right():
+                    y1 = rect.right()
+
+                if y2 <= rect.top():
+                    y2 = rect.top()
+                elif y2 >= rect.bottom():
+                    y2 = rect.bottom()
+
+                self.pointPath.lineTo(y1, y2)
+                self.drawFreeLine(self.pointPath, False)
+                self.redraw()
         else:
+            if self.action == ACTION_SELECT:
+                print('here')
             self.redraw()
 
     def mouseReleaseEvent(self, event):
@@ -219,7 +255,6 @@ class MainWindow(QGraphicsView):
                 self.redraw()
             elif self.action == ACTION_MOVE_SELECTED:
                 self.selectedAreaRaw = QRect(self.selectedArea)
-
                 self.redraw()
                 # self.action = None
             elif self.action == ACTION_RECT:
@@ -233,6 +268,9 @@ class MainWindow(QGraphicsView):
                 self.redraw()
             elif self.action == ACTION_LINE:
                 self.drawLine(self.startX, self.startY, event.x(), event.y(), True)
+                self.redraw()
+            elif self.action == ACTION_FREEPEN:
+                self.drawFreeLine(self.pointPath, True)
                 self.redraw()
 
     def detectMousePosition(self, point):
@@ -467,6 +505,7 @@ class MainWindow(QGraphicsView):
 
         if self.drawListProcess is not None:
             self.drawOneStep(self.drawListProcess)
+            self.drawListProcess = None
 
         if self.selectedArea != QRect():
             self.itemsToRemove = []
@@ -486,6 +525,26 @@ class MainWindow(QGraphicsView):
             self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(bottomLeftPoint - radius, bottomLeftPoint + radius), pen, brush))
             self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(bottomMiddlePoint - radius, bottomMiddlePoint + radius), pen, brush))
             self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(bottomRightPoint - radius, bottomRightPoint + radius), pen, brush))
+
+        # draw the textedit
+        if self.textPosition is not None:
+            textSpacing = 50
+            position = QPoint()
+            if self.textPosition.x() + self.textInput.width() >= self.screenPixel.width():
+                position.setX(self.textPosition.x() - self.textInput.width())
+            else:
+                position.setX(self.textPosition.x())
+
+            if self.textPosition.y() + self.textInput.height() + textSpacing >= self.screenPixel.height():
+                position.setY(self.textPosition.y() - self.textInput.height() - textSpacing)
+            else:
+                position.setY(self.textPosition.y() + textSpacing)
+
+            self.textInput.move(position)
+            self.textInput.show()
+            self.textInput.getFocus()
+        else:
+            self.textInput.hide()
 
     # deal with every step in drawList
     def drawOneStep(self, step):
@@ -515,8 +574,8 @@ class MainWindow(QGraphicsView):
             # sideLength is the length of bottom side of the body of an arrow
             # arrowSize is the size of the head of an arrow, left and right
             # sides' size is arrowSize, and the bottom side's size is arrowSize / 2
-            sideLength = step[5].width() * 1.5
-            arrowSize = 4
+            sideLength = step[5].width()
+            arrowSize = 8
             bottomSize = arrowSize / 2
 
             tmpPoint = QPointF(step[3] + arrowSize * sideLength * cosAngel, step[4] + arrowSize * sideLength * sinAngel)
@@ -541,7 +600,14 @@ class MainWindow(QGraphicsView):
             self.graphicsScene.addPolygon(arrow, step[5], step[6])
         elif step[0] == ACTION_LINE:
             self.graphicsScene.addLine(QLineF(QPointF(step[1], step[2]), QPointF(step[3], step[4])), step[5])
-            
+        elif step[0] == ACTION_FREEPEN:
+            self.graphicsScene.addPath(step[1], step[2])
+        elif step[0] == ACTION_TEXT:
+            textAdd = self.graphicsScene.addSimpleText(step[1])
+            textAdd.setPos(step[2])
+            textAdd.setPen(QPen(QColor(255, 255, 255), 2))
+
+
     # draw the size information on the top left corner
     def drawSizeInfo(self):
         sizeInfoAreaWidth = 100
@@ -629,15 +695,58 @@ class MainWindow(QGraphicsView):
         else:
             self.drawListProcess = tmp
 
+    def drawFreeLine(self, pointPath, result):
+        tmp = [ACTION_FREEPEN, QPainterPath(pointPath), QPen(QColor(self.penColorNow), int(self.penSizeNow))]
+        if result:
+            self.drawListResult.append(tmp)
+        else:
+            self.drawListProcess = tmp
+
+    def textChange(self):
+        self.text = self.textInput.getText()
+        self.drawListProcess = [ACTION_TEXT, str(self.text), QPoint(self.textPosition)]
+        self.redraw()
+
+    def undoOperation(self):
+        if len(self.drawListResult) == 0:
+            self.action = ACTION_SELECT
+            self.selectedArea = QRect()
+            self.selectedAreaRaw = QRect()
+            self.tooBar.hide()
+            self.penSetBar.hide()
+        else:
+            self.drawListResult.pop()
+        self.redraw()
+
+    # def addText(self):
+
     # slots
     def changeAction(self, nextAction):
         self.action = nextAction
+        if nextAction == ACTION_UNDO:
+            print('undo action')
+            self.undoOperation()
+        self.setFocus()
 
     def changePenSize(self, nextPenSize):
         self.penSizeNow = nextPenSize
 
     def changePenColor(self, nextPenColor):
         self.penColorNow = nextPenColor
+
+    def cancelInput(self):
+        self.drawListProcess = None
+        self.textPosition = None
+        self.textInput.hide()
+        self.redraw()
+
+    def okInput(self):
+        self.text = self.textInput.getText()
+        self.drawListResult.append([ACTION_TEXT, str(self.text), QPoint(self.textPosition)])
+        self.textInput.hide()
+        self.textPosition = None
+        self.redraw()
+
 
 if __name__ == "__main__":
     a = QApplication(sys.argv)

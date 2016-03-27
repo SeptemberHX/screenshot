@@ -8,7 +8,7 @@ You can take some simple changes after taking a screenshot without opening an im
 
 Because I have not completed it, it has only a few functions.
 
-Till now, you can draw rectangle, ellipse, arrow and line in 3 different sizes and 14 kinds of colors. With development, it will support user defined color and size.
+Till now, you can draw rectangle, ellipse, arrow, line, and free hand draw in 3 different sizes and 14 kinds of colors. With development, it will support user defined color and size.
 
 Before starting, you should make sure you have python and pyqt5 installed.
 
