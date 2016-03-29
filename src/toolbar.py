@@ -71,6 +71,7 @@ class MyToolBar(QWidget):
 
         self.saveButton = QPushButton('S', self)
         self.saveButton.setFixedSize(self.iconWidth, self.iconHeight)
+        self.saveButton.clicked.connect(self.otherButtonsClicked)
 
         self.separator2 = QFrame(self)
         self.separator2.setFrameShape(QFrame.VLine)
@@ -78,9 +79,11 @@ class MyToolBar(QWidget):
 
         self.cancelButton = QPushButton('C', self)
         self.cancelButton.setFixedSize(self.iconWidth, self.iconHeight)
+        self.cancelButton.clicked.connect(self.otherButtonsClicked)
 
         self.okButton = QPushButton('O', self)
         self.okButton.setFixedSize(self.iconWidth, self.iconHeight)
+        self.okButton.clicked.connect(self.otherButtonsClicked)
 
     def initWindow(self):
         self.hlayout = QHBoxLayout()
@@ -111,7 +114,6 @@ class MyToolBar(QWidget):
         :param button:
         :return:
         """
-        print(button.objectName())
         if button == self.rectButton:
             self.trigger.emit(ACTION_RECT)
         elif button == self.ellipseButton:
@@ -130,6 +132,12 @@ class MyToolBar(QWidget):
     def otherButtonsClicked(self):
         if self.sender() == self.undoButton:
             self.trigger.emit(ACTION_UNDO)
+        elif self.sender() == self.cancelButton:
+            self.trigger.emit(ACTION_CANCEL)
+        elif self.sender() == self.okButton:
+            self.trigger.emit(ACTION_SURE)
+        elif self.sender() == self.saveButton:
+            self.trigger.emit(ACTION_SAVE)
 
 
 if __name__ == '__main__':

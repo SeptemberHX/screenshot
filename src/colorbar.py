@@ -8,6 +8,7 @@ class PenSetWidget(QWidget):
 
     penSizeTrigger = pyqtSignal(int)
     penColorTrigger = pyqtSignal(str)
+    fontChangeTrigger = pyqtSignal(QFont)
 
     def __init__(self, parent=None):
         super(PenSetWidget, self).__init__(parent)
@@ -39,43 +40,54 @@ class PenSetWidget(QWidget):
         self.setLayout(self.mainLayout)
         self.mainLayout.setSpacing(0)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
+        self.setFixedWidth(300)
 
         self.initPenSizeButtons()
+        self.initFontWidget()
         self.initPenColorButtons()
 
         self.separator = QFrame(self)
         self.separator.setFrameShape(QFrame.VLine)
         self.separator.setFrameShadow(QFrame.Sunken)
 
-        self.mainLayout.addWidget(self.penSize1)
-        self.mainLayout.addWidget(self.penSize2)
-        self.mainLayout.addWidget(self.penSize3)
+        self.mainLayout.addWidget(self.penSize)
+        self.mainLayout.addWidget(self.changeFontButton)
         self.mainLayout.addWidget(self.separator)
 
         self.mainLayout.addWidget(self.colorSet)
 
     def initPenSizeButtons(self):
+        self.penSize = QWidget(self)
+        self.penSizeLayout = QHBoxLayout()
+        self.penSize.setLayout(self.penSizeLayout)
         # adjust pen size
-        self.penSize1 = QPushButton('1', self)
+        self.penSize1 = QPushButton('1', self.penSize)
         self.penSize1.setObjectName('1')
         self.penSize1.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize1.setCheckable(True)
 
-        self.penSize2 = QPushButton('2', self)
+        self.penSize2 = QPushButton('2', self.penSize)
         self.penSize2.setObjectName('2')
         self.penSize2.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize2.setCheckable(True)
 
-        self.penSize3 = QPushButton('3', self)
+        self.penSize3 = QPushButton('3', self.penSize)
         self.penSize3.setObjectName('3')
         self.penSize3.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize3.setCheckable(True)
 
-        self.sizeButtonGroup = QButtonGroup(self)
+        self.sizeButtonGroup = QButtonGroup(self.penSize)
         self.sizeButtonGroup.addButton(self.penSize1)
         self.sizeButtonGroup.addButton(self.penSize2)
         self.sizeButtonGroup.addButton(self.penSize3)
         self.sizeButtonGroup.buttonClicked.connect(self.sizeButtonToggled)
+
+        self.penSizeLayout.addWidget(self.penSize1)
+        self.penSizeLayout.addWidget(self.penSize2)
+        self.penSizeLayout.addWidget(self.penSize3)
+
+        self.penSizeLayout.setSpacing(5)
+        self.penSizeLayout.setContentsMargins(0, 0, 0, 0)
 
     def initPenColorButtons(self):
         self.colorSet = QWidget(self)
@@ -124,7 +136,7 @@ class PenSetWidget(QWidget):
         # set the layout
         tmp = 0
         for x in range(0, 2):
-            for y in range(0, len(self.colorList) / 2):
+            for y in range(0, int(len(self.colorList) / 2)):
                 self.colorGrid.addWidget(self.colorButtons[tmp], x, y)
                 tmp += 1
 
@@ -134,6 +146,26 @@ class PenSetWidget(QWidget):
         self.colorLayout.addWidget(self.presentColor)
         self.colorLayout.addWidget(self.colorPick)
 
+    def initFontWidget(self):
+        self.fontDialog = QFontDialog()
+        self.changeFontButton = QPushButton(self)
+        self.fontDialog.setCurrentFont(QFont('Sans serif'))
+        self.changeFontButton.setText('{0} {1}'.format(self.fontDialog.currentFont().family(),
+                                                       self.fontDialog.currentFont().pointSize()))
+        self.changeFontButton.clicked.connect(self.fontButtonClicked)
+
+    def showFontWidget(self):
+        self.changeFontButton.show()
+        self.penSize1.hide()
+        self.penSize2.hide()
+        self.penSize3.hide()
+
+    def showPenWidget(self):
+        self.changeFontButton.hide()
+        self.penSize1.show()
+        self.penSize2.show()
+        self.penSize3.show()
+
     # slots
     def colorButtonToggled(self, button):
         self.presentColor.setStyleSheet('QPushButton { background-color: %s; }' % button.objectName())
@@ -142,6 +174,13 @@ class PenSetWidget(QWidget):
     def sizeButtonToggled(self, button):
         self.penSizeTrigger.emit(int(button.objectName()))
 
+    def fontButtonClicked(self):
+        ok = True
+        font = QFontDialog.getFont(self)
+        if font[1]:
+            self.changeFontButton.setText('{0} {1}'.format(font[0].family(),
+                                                           font[0].pointSize()))
+            self.fontChangeTrigger.emit(font[0])
 
 if __name__ == '__main__':
     a = QApplication(argv)

@@ -1,4 +1,8 @@
+#!/usr/bin/python3
+
 from PyQt5.Qt import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 import sys
 
 from constant import *
@@ -8,6 +12,8 @@ from textinput import *
 
 from math import *
 
+
+qtApp = None
 
 class MainWindow(QGraphicsView):
     """ Main Class """
@@ -19,6 +25,8 @@ class MainWindow(QGraphicsView):
         # Init
         self.penColorNow = QColor(PENCOLOR)
         self.penSizeNow = PENSIZE
+        self.fontNow = QFont('Sans')
+        self.clipboard = QApplication.clipboard()
 
         self.drawListResult = []  # draw list that sure to be drew, [action, coord]
         self.drawListProcess = None  # the process to the result
@@ -26,6 +34,7 @@ class MainWindow(QGraphicsView):
         self.selectedAreaRaw = QRect()
         self.mousePosition = OUTSIDE_AREA  # mouse position
         self.screenPixel = None
+        self.textRect = None
 
         self.mousePressed = False
         self.action = ACTION_SELECT
@@ -54,6 +63,7 @@ class MainWindow(QGraphicsView):
         self.penSetBar = PenSetWidget(self)
         self.penSetBar.penSizeTrigger.connect(self.changePenSize)
         self.penSetBar.penColorTrigger.connect(self.changePenColor)
+        self.penSetBar.fontChangeTrigger.connect(self.changeFont)
 
         self.textInput = TextInput(self)
         self.textInput.inputChanged.connect(self.textChange)
@@ -113,7 +123,7 @@ class MainWindow(QGraphicsView):
             elif self.action == ACTION_TEXT:
                 if self.textPosition is None:
                     self.textPosition = QPoint(event.x(), event.y())
-                    self.textInput.hasFocus()
+                    self.textRect = None
                     self.redraw()
 
     def mouseMoveEvent(self, event):
@@ -229,8 +239,6 @@ class MainWindow(QGraphicsView):
                 self.drawFreeLine(self.pointPath, False)
                 self.redraw()
         else:
-            if self.action == ACTION_SELECT:
-                print('here')
             self.redraw()
 
     def mouseReleaseEvent(self, event):
@@ -250,8 +258,6 @@ class MainWindow(QGraphicsView):
                 self.selectedArea.setBottomRight(QPoint(event.x(), event.y()))
                 self.selectedAreaRaw = QRect(self.selectedArea)
                 self.action = ACTION_MOVE_SELECTED
-                print('In mouse move event')
-                print(self.selectedArea.bottomRight())
                 self.redraw()
             elif self.action == ACTION_MOVE_SELECTED:
                 self.selectedAreaRaw = QRect(self.selectedArea)
@@ -385,7 +391,6 @@ class MainWindow(QGraphicsView):
 
         # get the rgb of mouse point
         pointRgb = QColor(self.screenPixel.toImage().pixel(self.mousePoint))
-        print(pointRgb)
 
         # draw information
         self.graphicsScene.addRect(QRectF(magnifierArea.bottomLeft(),
@@ -401,7 +406,7 @@ class MainWindow(QGraphicsView):
         sizeInfo.setPos(magnifierArea.bottomLeft() + QPoint(0, 2) + QPoint(0, fontAreaHeight / 2))
         sizeInfo.setPen(QPen(QColor(255, 255, 255), 2))
 
-    def saveScreenshot(self):
+    def saveScreenshot(self, clipboard=False, fileName='screenshot.png', picType='png'):
         fullWindow = QRect(0, 0, self.width() - 1, self.height() - 1)
         selected = QRect(self.selectedArea)
         if selected.left() < 0:
@@ -418,8 +423,8 @@ class MainWindow(QGraphicsView):
         target.moveTopLeft(QPoint(0, 0))
 
         image = QImage(source.size(), QImage.Format_RGB32)
-        painter = QPainter(image)
-        painter.begin(self)
+        painter = QPainter()
+        painter.begin(image)
 
         # remove the selected rect and drag points
         for junk in self.itemsToRemove:
@@ -427,11 +432,14 @@ class MainWindow(QGraphicsView):
 
         self.graphicsScene.render(painter, QRectF(target), QRectF(source))
         painter.end()
-        image.save('test', 'png', 10)
 
-        # then add the selected rect and drag points background-color
-        for junk in self.itemsToRemove:
-            self.graphicsScene.addItem(junk)
+        if clipboard:
+            # QGuiApplication.clipboard().setImage(image, QClipboard.Clipboard)
+            self.clipboard.setText('This is a test')
+            print(QApplication.clipboard().text())
+            # It doesn't work here, I don't know why.
+        else:
+            image.save(fileName, picType, 10)
 
     def redraw(self):
         self.graphicsScene.clear()
@@ -492,9 +500,14 @@ class MainWindow(QGraphicsView):
 
             self.tooBar.move(dest.toPoint())
             self.penSetBar.move(dest.toPoint() + QPoint(0, self.tooBar.height() + spacing))
-            print(self.tooBar.pos())
             self.tooBar.show()
             self.penSetBar.show()
+
+            if self.action == ACTION_TEXT:
+                self.penSetBar.showFontWidget()
+            else:
+                self.penSetBar.showPenWidget()
+
         else:
             self.tooBar.hide()
             self.penSetBar.hide()
@@ -505,7 +518,8 @@ class MainWindow(QGraphicsView):
 
         if self.drawListProcess is not None:
             self.drawOneStep(self.drawListProcess)
-            self.drawListProcess = None
+            if self.action != ACTION_TEXT:
+                self.drawListProcess = None
 
         if self.selectedArea != QRect():
             self.itemsToRemove = []
@@ -535,16 +549,20 @@ class MainWindow(QGraphicsView):
             else:
                 position.setX(self.textPosition.x())
 
-            if self.textPosition.y() + self.textInput.height() + textSpacing >= self.screenPixel.height():
-                position.setY(self.textPosition.y() - self.textInput.height() - textSpacing)
+            if self.textRect is not None:
+                if self.textPosition.y() + self.textInput.height() + self.textRect.height() >= self.screenPixel.height():
+                    position.setY(self.textPosition.y() - self.textInput.height() - self.textRect.height())
+                else:
+                    position.setY(self.textPosition.y() + self.textRect.height())
             else:
-                position.setY(self.textPosition.y() + textSpacing)
+                if self.textPosition.y() + self.textInput.height() >= self.screenPixel.height():
+                    position.setY(self.textPosition.y() - self.textInput.height())
+                else:
+                    position.setY(self.textPosition.y())
 
             self.textInput.move(position)
             self.textInput.show()
             self.textInput.getFocus()
-        else:
-            self.textInput.hide()
 
     # deal with every step in drawList
     def drawOneStep(self, step):
@@ -603,10 +621,10 @@ class MainWindow(QGraphicsView):
         elif step[0] == ACTION_FREEPEN:
             self.graphicsScene.addPath(step[1], step[2])
         elif step[0] == ACTION_TEXT:
-            textAdd = self.graphicsScene.addSimpleText(step[1])
-            textAdd.setPos(step[2])
-            textAdd.setPen(QPen(QColor(255, 255, 255), 2))
-
+            textAdd = self.graphicsScene.addSimpleText(step[1], step[2])
+            textAdd.setPos(step[3])
+            textAdd.setBrush(QBrush(step[4]))
+            self.textRect = textAdd.boundingRect()
 
     # draw the size information on the top left corner
     def drawSizeInfo(self):
@@ -703,8 +721,10 @@ class MainWindow(QGraphicsView):
             self.drawListProcess = tmp
 
     def textChange(self):
+        if self.textPosition is None:
+            return
         self.text = self.textInput.getText()
-        self.drawListProcess = [ACTION_TEXT, str(self.text), QPoint(self.textPosition)]
+        self.drawListProcess = [ACTION_TEXT, str(self.text), QFont(self.fontNow), QPoint(self.textPosition), QColor(self.penColorNow)]
         self.redraw()
 
     def undoOperation(self):
@@ -718,14 +738,36 @@ class MainWindow(QGraphicsView):
             self.drawListResult.pop()
         self.redraw()
 
-    # def addText(self):
+    def saveOperation(self):
+        filename = QFileDialog.getSaveFileName(self, 'Save file', './screenshot.png', '*.png;;*.jpg')
+        if len(filename[0]) == 0:
+            return
+        else:
+            self.saveScreenshot(False, filename[0], filename[1][2:])
+            self.close()
+
+    def saveToClipboard(self):
+        QApplication.clipboard().setText('Test in save function')
+
+        self.saveScreenshot(True)
+        self.close()
 
     # slots
     def changeAction(self, nextAction):
-        self.action = nextAction
+        QApplication.clipboard().setText('Test in changeAction function')
+
         if nextAction == ACTION_UNDO:
-            print('undo action')
             self.undoOperation()
+        elif nextAction == ACTION_SAVE:
+            self.saveOperation()
+        elif nextAction == ACTION_CANCEL:
+            self.close()
+        elif nextAction == ACTION_SURE:
+            self.saveToClipboard()
+
+        else:
+            self.action = nextAction
+
         self.setFocus()
 
     def changePenSize(self, nextPenSize):
@@ -737,20 +779,27 @@ class MainWindow(QGraphicsView):
     def cancelInput(self):
         self.drawListProcess = None
         self.textPosition = None
+        self.textRect = None
         self.textInput.hide()
+        self.textInput.clearText()
         self.redraw()
 
     def okInput(self):
         self.text = self.textInput.getText()
-        self.drawListResult.append([ACTION_TEXT, str(self.text), QPoint(self.textPosition)])
-        self.textInput.hide()
+        self.drawListResult.append([ACTION_TEXT, str(self.text), QFont(self.fontNow), QPoint(self.textPosition), QColor(self.penColorNow)])
         self.textPosition = None
+        self.textRect = None
+        self.textInput.hide()
+        self.textInput.clearText()
         self.redraw()
 
+    def changeFont(self, font):
+        self.fontNow = font
 
 if __name__ == "__main__":
-    a = QApplication(sys.argv)
+    qtApp = QApplication(sys.argv)
     window = MainWindow()
     window.show()
+    # window.test()
 
-    a.exec_()
+    qtApp.exec()

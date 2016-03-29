@@ -33,3 +33,5 @@ ERRORRANGE = 6
 
 PENCOLOR = '#ff0000'  #  red
 PENSIZE = 1
+FONTSIZE = 10
+FONTTYPE = 'ubuntu mono'

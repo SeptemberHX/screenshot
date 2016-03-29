@@ -13,7 +13,7 @@ class TextInput(QWidget):
     def __init__(self, parent=None):
         super(TextInput, self).__init__(parent)
 
-        self.setWindowFlags(Qt.ToolTip)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
 
         self.mainLayout = QVBoxLayout()
         self.textArea = QTextEdit(self)
@@ -40,6 +40,9 @@ class TextInput(QWidget):
     def getFocus(self):
         self.setFocus()
         self.textArea.setFocus()
+
+    def clearText(self):
+        self.textArea.clear()
 
     # slots
     def textChanged_(self):
