@@ -39,7 +39,7 @@ class PenSetWidget(QWidget):
         self.mainLayout = QHBoxLayout()
         self.setLayout(self.mainLayout)
         self.mainLayout.setSpacing(0)
-        self.mainLayout.setContentsMargins(5, 0, 5, 0)
+        self.mainLayout.setContentsMargins(5, 2, 5, 2)
         self.setFixedWidth(300)
 
         self.initPenSizeButtons()
@@ -61,17 +61,20 @@ class PenSetWidget(QWidget):
         self.penSizeLayout = QHBoxLayout()
         self.penSize.setLayout(self.penSizeLayout)
         # adjust pen size
-        self.penSize1 = QPushButton('1', self.penSize)
+        self.penSize1 = QPushButton(self.penSize)
+        self.penSize1.setIcon(QIcon("../icons/pensize1.png"))
         self.penSize1.setObjectName('1')
         self.penSize1.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize1.setCheckable(True)
 
-        self.penSize2 = QPushButton('2', self.penSize)
+        self.penSize2 = QPushButton(self.penSize)
+        self.penSize2.setIcon(QIcon("../icons/pensize2.png"))
         self.penSize2.setObjectName('2')
         self.penSize2.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize2.setCheckable(True)
 
-        self.penSize3 = QPushButton('3', self.penSize)
+        self.penSize3 = QPushButton(self.penSize)
+        self.penSize3.setIcon(QIcon("../icons/pensize3.png"))
         self.penSize3.setObjectName('3')
         self.penSize3.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize3.setCheckable(True)
@@ -96,7 +99,7 @@ class PenSetWidget(QWidget):
         self.colorLayout.setContentsMargins(5, 0, 5, 0)
         self.colorSet.setLayout(self.colorLayout)
 
-        self.presentColor = QPushButton('P', self.colorSet)
+        self.presentColor = QPushButton(self.colorSet)
         self.presentColor.setFixedSize(self.iconWidth, self.iconHeight)
         self.presentColor.setEnabled(False)
 
@@ -172,7 +175,7 @@ class PenSetWidget(QWidget):
         self.penColorTrigger.emit(button.objectName())
 
     def sizeButtonToggled(self, button):
-        self.penSizeTrigger.emit(int(button.objectName()))
+        self.penSizeTrigger.emit(int(button.objectName()) * 2)
 
     def fontButtonClicked(self):
         ok = True

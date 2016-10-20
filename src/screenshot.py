@@ -12,8 +12,8 @@ from textinput import *
 
 from math import *
 
-
 qtApp = None
+
 
 class MainWindow(QGraphicsView):
     """ Main Class """
@@ -32,13 +32,13 @@ class MainWindow(QGraphicsView):
         self.drawListProcess = None  # the process to the result
         self.selectedArea = QRect()  # a QRect instance which stands for the selected area
         self.selectedAreaRaw = QRect()
-        self.mousePosition = OUTSIDE_AREA  # mouse position
+        self.mousePosition = MousePosition.OUTSIDE_AREA  # mouse position
         self.screenPixel = None
         self.textRect = None
 
         self.mousePressed = False
         self.action = ACTION_SELECT
-        self.mousePoint = QPoint()
+        self.mousePoint = self.cursor().pos()
 
         self.startX, self.startY = 0, 0  # the point where you start
         self.endX, self.endY = 0, 0  # the point where you end
@@ -97,18 +97,18 @@ class MainWindow(QGraphicsView):
         self.startX, self.startY = event.x(), event.y()
 
         if self.action == ACTION_SELECT:
-            if self.mousePosition == OUTSIDE_AREA:
+            if self.mousePosition == MousePosition.OUTSIDE_AREA:
                 self.mousePressed = True
                 self.selectedArea = QRect()
                 self.selectedArea.setTopLeft(QPoint(event.x(), event.y()))
                 self.selectedArea.setBottomRight(QPoint(event.x(), event.y()))
                 self.redraw()
-            elif self.mousePosition == INSIDE_AREA:
+            elif self.mousePosition == MousePosition.INSIDE_AREA:
                 self.mousePressed = True
             else:
                 pass
         elif self.action == ACTION_MOVE_SELECTED:
-            if self.mousePosition == OUTSIDE_AREA:
+            if self.mousePosition == MousePosition.OUTSIDE_AREA:
                 self.action = ACTION_SELECT
                 self.selectedArea = QRect()
                 self.selectedArea.setTopLeft(QPoint(event.x(), event.y()))
@@ -133,6 +133,7 @@ class MainWindow(QGraphicsView):
         :return:
         """
         self.mousePoint = QPoint(event.x(), event.y())
+
         if self.action is None:
             self.action = ACTION_SELECT
 
@@ -140,8 +141,8 @@ class MainWindow(QGraphicsView):
             point = QPoint(event.x(), event.y())
             self.detectMousePosition(point)
             self.setCursorStyle()
-
-        if self.mousePressed:
+            self.redraw()
+        else:
             self.endX, self.endY = event.x(), event.y()
 
             # if self.mousePosition != OUTSIDE_AREA:
@@ -152,7 +153,8 @@ class MainWindow(QGraphicsView):
                 self.redraw()
             elif self.action == ACTION_MOVE_SELECTED:
                 self.selectedArea = QRect(self.selectedAreaRaw)
-                if self.mousePosition == INSIDE_AREA:
+
+                if self.mousePosition == MousePosition.INSIDE_AREA:
                     moveToX = event.x() - self.startX + self.selectedArea.left()
                     moveToY = event.y() - self.startY + self.selectedArea.top()
                     if 0 <= moveToX <= self.screenPixel.width() - 1 - self.selectedArea.width():
@@ -163,46 +165,46 @@ class MainWindow(QGraphicsView):
                     self.selectedAreaRaw = QRect(self.selectedArea)
                     self.startX, self.startY = event.x(), event.y()
                     self.redraw()
-                elif self.mousePosition == ON_THE_LEFT_SIDE:
+                elif self.mousePosition == MousePosition.ON_THE_LEFT_SIDE:
                     moveToX = event.x() - self.startX + self.selectedArea.left()
                     if moveToX <= self.selectedArea.right:
                         self.selectedArea.setLeft(moveToX)
                         self.selectedArea = self.selectedArea.normalized()
                         self.redraw()
-                elif self.mousePosition == ON_THE_RIGHT_SIDE:
+                elif self.mousePosition == MousePosition.ON_THE_RIGHT_SIDE:
                     moveToX = event.x() - self.startX + self.selectedArea.right()
                     self.selectedArea.setRight(moveToX)
                     self.selectedArea = self.selectedArea.normalized()
                     self.redraw()
-                elif self.mousePosition == ON_THE_UP_SIDE:
+                elif self.mousePosition == MousePosition.ON_THE_UP_SIDE:
                     moveToY = event.y() - self.startY + self.selectedArea.top()
                     self.selectedArea.setTop(moveToY)
                     self.selectedArea = self.selectedArea.normalized()
                     self.redraw()
-                elif self.mousePosition == ON_THE_DOWN_SIDE:
+                elif self.mousePosition == MousePosition.ON_THE_DOWN_SIDE:
                     moveToY = event.y() - self.startY + self.selectedArea.bottom()
                     self.selectedArea.setBottom(moveToY)
                     self.selectedArea = self.selectedArea.normalized()
                     self.redraw()
-                elif self.mousePosition == ON_THE_TOP_LEFT_CORNOR:
+                elif self.mousePosition == MousePosition.ON_THE_TOP_LEFT_CORNER:
                     moveToX = event.x() - self.startX + self.selectedArea.left()
                     moveToY = event.y() - self.startY + self.selectedArea.top()
                     self.selectedArea.setTopLeft(QPoint(moveToX, moveToY))
                     self.selectedArea = self.selectedArea.normalized()
                     self.redraw()
-                elif self.mousePosition == ON_THE_BOTTOM_RIGHT_CORNOR:
+                elif self.mousePosition == MousePosition.ON_THE_BOTTOM_RIGHT_CORNER:
                     moveToX = event.x() - self.startX + self.selectedArea.right()
                     moveToY = event.y() - self.startY + self.selectedArea.bottom()
                     self.selectedArea.setBottomRight(QPoint(moveToX, moveToY))
                     self.selectedArea = self.selectedArea.normalized()
                     self.redraw()
-                elif self.mousePosition == ON_THE_TOP_RIGHT_CORNOR:
+                elif self.mousePosition == MousePosition.ON_THE_TOP_RIGHT_CORNER:
                     moveToX = event.x() - self.startX + self.selectedArea.right()
                     moveToY = event.y() - self.startY + self.selectedArea.top()
                     self.selectedArea.setTopRight(QPoint(moveToX, moveToY))
                     self.selectedArea = self.selectedArea.normalized()
                     self.redraw()
-                elif self.mousePosition == ON_THE_BOTTOM_LEFT_CORNOR:
+                elif self.mousePosition == MousePosition.ON_THE_BOTTOM_LEFT_CORNER:
                     moveToX = event.x() - self.startX + self.selectedArea.left()
                     moveToY = event.y() - self.startY + self.selectedArea.bottom()
                     self.selectedArea.setBottomLeft(QPoint(moveToX, moveToY))
@@ -238,8 +240,6 @@ class MainWindow(QGraphicsView):
                 self.pointPath.lineTo(y1, y2)
                 self.drawFreeLine(self.pointPath, False)
                 self.redraw()
-        else:
-            self.redraw()
 
     def mouseReleaseEvent(self, event):
         """
@@ -286,54 +286,62 @@ class MainWindow(QGraphicsView):
         :return:
         """
         if self.selectedArea == QRect():
-            self.mousePosition = OUTSIDE_AREA
+            self.mousePosition = MousePosition.OUTSIDE_AREA
             return
 
         if self.selectedArea.left() - ERRORRANGE <= point.x() <= self.selectedArea.left() and (
-                                self.selectedArea.top() - ERRORRANGE <= point.y() <= self.selectedArea.top()):
-            self.mousePosition = ON_THE_TOP_LEFT_CORNOR
+                            self.selectedArea.top() - ERRORRANGE <= point.y() <= self.selectedArea.top()):
+            self.mousePosition = MousePosition.ON_THE_TOP_LEFT_CORNER
         elif self.selectedArea.right() <= point.x() <= self.selectedArea.right() + ERRORRANGE and (
-                                self.selectedArea.top() - ERRORRANGE <= point.y() <= self.selectedArea.top()):
-            self.mousePosition = ON_THE_TOP_RIGHT_CORNOR
+                            self.selectedArea.top() - ERRORRANGE <= point.y() <= self.selectedArea.top()):
+            self.mousePosition = MousePosition.ON_THE_TOP_RIGHT_CORNER
         elif self.selectedArea.left() - ERRORRANGE <= point.x() <= self.selectedArea.left() and (
-                                self.selectedArea.bottom() <= point.y() <= self.selectedArea.bottom() + ERRORRANGE):
-            self.mousePosition = ON_THE_BOTTOM_LEFT_CORNOR
+                        self.selectedArea.bottom() <= point.y() <= self.selectedArea.bottom() + ERRORRANGE):
+            self.mousePosition = MousePosition.ON_THE_BOTTOM_LEFT_CORNER
         elif self.selectedArea.right() <= point.x() <= self.selectedArea.right() + ERRORRANGE and (
-                                self.selectedArea.bottom() <= point.y() <= self.selectedArea.bottom() + ERRORRANGE):
-            self.mousePosition = ON_THE_BOTTOM_RIGHT_CORNOR
+                        self.selectedArea.bottom() <= point.y() <= self.selectedArea.bottom() + ERRORRANGE):
+            self.mousePosition = MousePosition.ON_THE_BOTTOM_RIGHT_CORNER
         elif -ERRORRANGE <= point.x() - self.selectedArea.left() <= 0 and (
-                                self.selectedArea.topLeft().y() < point.y() < self.selectedArea.bottomLeft().y()):
-            self.mousePosition = ON_THE_LEFT_SIDE
+                        self.selectedArea.topLeft().y() < point.y() < self.selectedArea.bottomLeft().y()):
+            self.mousePosition = MousePosition.ON_THE_LEFT_SIDE
         elif 0 <= point.x() - self.selectedArea.right() <= ERRORRANGE and (
-                                self.selectedArea.topRight().y() < point.y() < self.selectedArea.bottomRight().y()):
-            self.mousePosition = ON_THE_RIGHT_SIDE
+                        self.selectedArea.topRight().y() < point.y() < self.selectedArea.bottomRight().y()):
+            self.mousePosition = MousePosition.ON_THE_RIGHT_SIDE
         elif -ERRORRANGE <= point.y() - self.selectedArea.top() <= 0 and (
-                                self.selectedArea.topLeft().x() < point.x() < self.selectedArea.topRight().x()):
-            self.mousePosition = ON_THE_UP_SIDE
+                        self.selectedArea.topLeft().x() < point.x() < self.selectedArea.topRight().x()):
+            self.mousePosition = MousePosition.ON_THE_UP_SIDE
         elif 0 <= point.y() - self.selectedArea.bottom() <= ERRORRANGE and (
-                                self.selectedArea.bottomLeft().x() < point.x() < self.selectedArea.bottomRight().x()):
-            self.mousePosition = ON_THE_DOWN_SIDE
+                        self.selectedArea.bottomLeft().x() < point.x() < self.selectedArea.bottomRight().x()):
+            self.mousePosition = MousePosition.ON_THE_DOWN_SIDE
         elif not self.selectedArea.contains(point):
-            self.mousePosition = OUTSIDE_AREA
+            self.mousePosition = MousePosition.OUTSIDE_AREA
         else:
-            self.mousePosition = INSIDE_AREA
+            self.mousePosition = MousePosition.INSIDE_AREA
 
     def setCursorStyle(self):
         if self.action in DRAW_ACTION:
             self.setCursor(Qt.CrossCursor)
             return
 
-        if self.mousePosition == ON_THE_LEFT_SIDE or self.mousePosition == ON_THE_RIGHT_SIDE:
+        if self.mousePosition == MousePosition.ON_THE_LEFT_SIDE or \
+                        self.mousePosition == MousePosition.ON_THE_RIGHT_SIDE:
+
             self.setCursor(Qt.SizeHorCursor)
-        elif self.mousePosition == ON_THE_UP_SIDE or self.mousePosition == ON_THE_DOWN_SIDE:
+        elif self.mousePosition == MousePosition.ON_THE_UP_SIDE or \
+                        self.mousePosition == MousePosition.ON_THE_DOWN_SIDE:
+
             self.setCursor(Qt.SizeVerCursor)
-        elif self.mousePosition == ON_THE_TOP_LEFT_CORNOR or self.mousePosition == ON_THE_BOTTOM_RIGHT_CORNOR:
+        elif self.mousePosition == MousePosition.ON_THE_TOP_LEFT_CORNER or \
+                        self.mousePosition == MousePosition.ON_THE_BOTTOM_RIGHT_CORNER:
+
             self.setCursor(Qt.SizeFDiagCursor)
-        elif self.mousePosition == ON_THE_TOP_RIGHT_CORNOR or self.mousePosition == ON_THE_BOTTOM_LEFT_CORNOR:
+        elif self.mousePosition == MousePosition.ON_THE_TOP_RIGHT_CORNER or \
+                        self.mousePosition == MousePosition.ON_THE_BOTTOM_LEFT_CORNER:
+
             self.setCursor(Qt.SizeBDiagCursor)
-        elif self.mousePosition == OUTSIDE_AREA:
+        elif self.mousePosition == MousePosition.OUTSIDE_AREA:
             self.setCursor(Qt.ArrowCursor)
-        elif self.mousePosition == INSIDE_AREA:
+        elif self.mousePosition == MousePosition.INSIDE_AREA:
             self.setCursor(Qt.OpenHandCursor)
         else:
             self.setCursor(Qt.ArrowCursor)
@@ -397,7 +405,8 @@ class MainWindow(QGraphicsView):
                                           magnifierArea.bottomRight() + QPoint(0, fontAreaHeight)),
                                    Qt.black,
                                    QBrush(Qt.black))
-        rgbInfo = self.graphicsScene.addSimpleText(' Rgb: ({0}, {1}, {2})'.format(pointRgb.red(), pointRgb.green(), pointRgb.blue()))
+        rgbInfo = self.graphicsScene.addSimpleText(
+            ' Rgb: ({0}, {1}, {2})'.format(pointRgb.red(), pointRgb.green(), pointRgb.blue()))
         rgbInfo.setPos(magnifierArea.bottomLeft() + QPoint(0, 2))
         rgbInfo.setPen(QPen(QColor(255, 255, 255), 2))
 
@@ -531,14 +540,23 @@ class MainWindow(QGraphicsView):
             # draw the drag point
             radius = QPoint(3, 3)
             brush = QBrush(QColor(0, 255, 255))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(topLeftPoint - radius, topLeftPoint + radius), pen, brush))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(topMiddlePoint - radius, topMiddlePoint + radius), pen, brush))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(topRightPoint - radius, topRightPoint + radius), pen, brush))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(leftMiddlePoint - radius, leftMiddlePoint + radius), pen, brush))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(rightMiddlePoint - radius, rightMiddlePoint + radius), pen, brush))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(bottomLeftPoint - radius, bottomLeftPoint + radius), pen, brush))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(bottomMiddlePoint - radius, bottomMiddlePoint + radius), pen, brush))
-            self.itemsToRemove.append(self.graphicsScene.addEllipse(QRectF(bottomRightPoint - radius, bottomRightPoint + radius), pen, brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(topLeftPoint - radius, topLeftPoint + radius), pen, brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(topMiddlePoint - radius, topMiddlePoint + radius), pen, brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(topRightPoint - radius, topRightPoint + radius), pen, brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(leftMiddlePoint - radius, leftMiddlePoint + radius), pen, brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(rightMiddlePoint - radius, rightMiddlePoint + radius), pen, brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(bottomLeftPoint - radius, bottomLeftPoint + radius), pen, brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(bottomMiddlePoint - radius, bottomMiddlePoint + radius), pen,
+                                              brush))
+            self.itemsToRemove.append(
+                self.graphicsScene.addEllipse(QRectF(bottomRightPoint - radius, bottomRightPoint + radius), pen, brush))
 
         # draw the textedit
         if self.textPosition is not None:
@@ -574,7 +592,7 @@ class MainWindow(QGraphicsView):
                                               QPointF(step[3], step[4])), step[5])
         elif step[0] == ACTION_ELLIPSE:
             self.graphicsScene.addEllipse(QRectF(QPointF(step[1], step[2]),
-                                              QPointF(step[3], step[4])), step[5])
+                                                 QPointF(step[3], step[4])), step[5])
         elif step[0] == ACTION_ARROW:
             arrow = QPolygonF()
 
@@ -601,9 +619,11 @@ class MainWindow(QGraphicsView):
             point1 = QPointF(step[1] + sideLength * sinAngel, step[2] - sideLength * cosAngel)
             point2 = QPointF(step[1] - sideLength * sinAngel, step[2] + sideLength * cosAngel)
             point3 = QPointF(tmpPoint.x() - sideLength * sinAngel, tmpPoint.y() + sideLength * cosAngel)
-            point4 = QPointF(tmpPoint.x() - bottomSize * sideLength * sinAngel, tmpPoint.y() + bottomSize * sideLength * cosAngel)
+            point4 = QPointF(tmpPoint.x() - bottomSize * sideLength * sinAngel,
+                             tmpPoint.y() + bottomSize * sideLength * cosAngel)
             point5 = QPointF(step[3], step[4])
-            point6 = QPointF(tmpPoint.x() + bottomSize * sideLength * sinAngel, tmpPoint.y() - bottomSize * sideLength * cosAngel)
+            point6 = QPointF(tmpPoint.x() + bottomSize * sideLength * sinAngel,
+                             tmpPoint.y() - bottomSize * sideLength * cosAngel)
             point7 = QPointF(tmpPoint.x() + sideLength * sinAngel, tmpPoint.y() - sideLength * cosAngel)
 
             arrow.append(point1)
@@ -655,8 +675,8 @@ class MainWindow(QGraphicsView):
         tmpRect = QRect(QPoint(x1, x2), QPoint(y1, y2)).normalized()
         resultRect = rect & tmpRect
         tmp = [ACTION_RECT, resultRect.topLeft().x(), resultRect.topLeft().y(),
-                      resultRect.bottomRight().x(), resultRect.bottomRight().y(),
-                      QPen(QColor(self.penColorNow), int(self.penSizeNow))]
+               resultRect.bottomRight().x(), resultRect.bottomRight().y(),
+               QPen(QColor(self.penColorNow), int(self.penSizeNow))]
         if result:
             self.drawListResult.append(tmp)
         else:
@@ -667,8 +687,8 @@ class MainWindow(QGraphicsView):
         tmpRect = QRect(QPoint(x1, x2), QPoint(y1, y2)).normalized()
         resultRect = rect & tmpRect
         tmp = [ACTION_ELLIPSE, resultRect.topLeft().x(), resultRect.topLeft().y(),
-                      resultRect.bottomRight().x(), resultRect.bottomRight().y(),
-                      QPen(QColor(self.penColorNow), int(self.penSizeNow))]
+               resultRect.bottomRight().x(), resultRect.bottomRight().y(),
+               QPen(QColor(self.penColorNow), int(self.penSizeNow))]
         if result:
             self.drawListResult.append(tmp)
         else:
@@ -687,8 +707,8 @@ class MainWindow(QGraphicsView):
             y2 = rect.bottom()
 
         tmp = [ACTION_ARROW, x1, x2, y1, y2,
-                      QPen(QColor(self.penColorNow), int(self.penSizeNow)),
-                      QBrush(QColor(self.penColorNow))]
+               QPen(QColor(self.penColorNow), int(self.penSizeNow)),
+               QBrush(QColor(self.penColorNow))]
         if result:
             self.drawListResult.append(tmp)
         else:
@@ -707,7 +727,7 @@ class MainWindow(QGraphicsView):
             y2 = rect.bottom()
 
         tmp = [ACTION_LINE, x1, x2, y1, y2,
-                      QPen(QColor(self.penColorNow), int(self.penSizeNow))]
+               QPen(QColor(self.penColorNow), int(self.penSizeNow))]
         if result:
             self.drawListResult.append(tmp)
         else:
@@ -724,7 +744,8 @@ class MainWindow(QGraphicsView):
         if self.textPosition is None:
             return
         self.text = self.textInput.getText()
-        self.drawListProcess = [ACTION_TEXT, str(self.text), QFont(self.fontNow), QPoint(self.textPosition), QColor(self.penColorNow)]
+        self.drawListProcess = [ACTION_TEXT, str(self.text), QFont(self.fontNow), QPoint(self.textPosition),
+                                QColor(self.penColorNow)]
         self.redraw()
 
     def undoOperation(self):
@@ -786,7 +807,8 @@ class MainWindow(QGraphicsView):
 
     def okInput(self):
         self.text = self.textInput.getText()
-        self.drawListResult.append([ACTION_TEXT, str(self.text), QFont(self.fontNow), QPoint(self.textPosition), QColor(self.penColorNow)])
+        self.drawListResult.append(
+            [ACTION_TEXT, str(self.text), QFont(self.fontNow), QPoint(self.textPosition), QColor(self.penColorNow)])
         self.textPosition = None
         self.textRect = None
         self.textInput.hide()
@@ -795,6 +817,7 @@ class MainWindow(QGraphicsView):
 
     def changeFont(self, font):
         self.fontNow = font
+
 
 if __name__ == "__main__":
     qtApp = QApplication(sys.argv)
