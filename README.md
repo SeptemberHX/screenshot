@@ -1,7 +1,5 @@
 # A simple screenshot tool #
 
-Nearly complete it
-
 A simple screenshot tool writes in python with pyQt5.
 
 You can take some simple changes after taking a screenshot without opening an image editor.
@@ -16,21 +14,31 @@ Before starting, you should make sure you have python and pyqt5 installed.
 2. cd ./src
 3. python ./screenshot.py
 
-##### Buttons:
-R - Rectangle
+##### Functions
 
-E - Ellipse
+You can edit pictures after taking a screenshot.
 
-A - Arrow
+For now, you can draw RECTANGLE, ELLIPSE, ARROW and LINE. Also you can use a pen and put some TEXT on screenshot
 
-F - Free hand draw
+toolbar:
+rectangle ellipse arrow line pen text | undo save | close save_to_clipboard
 
-T - Text
+## Screenshot
+Rectangle
+![image](https://raw.githubusercontent.com/SeptemberHX/screenshot/master/screenshot/rect.png)
 
-U - Undo a step
+Ellipse
+![image](https://raw.githubusercontent.com/SeptemberHX/screenshot/master/screenshot/ellipse.png)
 
-S - Save as a file
+Arrow
+![image](https://raw.githubusercontent.com/SeptemberHX/screenshot/master/screenshot/arrow.png)
 
-C - Cancel and exit
+Line and Pen
+![image](https://raw.githubusercontent.com/SeptemberHX/screenshot/master/screenshot/line_pen.png)
 
-O - Copy to clipboard and exit(do not work now, I don't know the reason)
+Text
+![image](https://raw.githubusercontent.com/SeptemberHX/screenshot/master/screenshot/text.png)
+
+## Bugs
+
+Can't save screenshot to clipboard for now
