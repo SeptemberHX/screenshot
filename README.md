@@ -11,8 +11,8 @@ Save image as png or jpg file, or cpoy to clipboard
 Before starting, you should make sure you have python and pyqt5 installed.
 
 1. git clone https://github.com/SeptemberHX/screenshot.git
-2. cd ./src
-3. python ./screenshot.py
+2. cd ./screenshot
+3. python ./main.py
 
 ##### Functions
 
@@ -41,4 +41,4 @@ Text
 
 ## Bugs
 
-Can't save screenshot to clipboard for now
+Can't save screenshot to clipboard on Linux because the clipboard on Linux only stores the reference to the picture object, which means the clipboard can't hold the screenshot after closing the screenshot.
