@@ -165,7 +165,7 @@ class MainWindow(QGraphicsView):
                     self.redraw()
                 elif self.mousePosition == MousePosition.ON_THE_LEFT_SIDE:
                     moveToX = event.x() - self.startX + self.selectedArea.left()
-                    if moveToX <= self.selectedArea.right:
+                    if moveToX <= self.selectedArea.right():
                         self.selectedArea.setLeft(moveToX)
                         self.selectedArea = self.selectedArea.normalized()
                         self.redraw()
@@ -575,7 +575,7 @@ class MainWindow(QGraphicsView):
 
             self.textInput.move(position)
             self.textInput.show()
-            self.textInput.getFocus()
+            # self.textInput.getFocus()
 
     # deal with every step in drawList
     def drawOneStep(self, step):

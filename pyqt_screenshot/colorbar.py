@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QFrame, QButtonGr
 from pyqt_screenshot.constant import *
 from PyQt5.QtCore import pyqtSignal, Qt
 
+from resource import resource
+
 
 class PenSetWidget(QWidget):
 
@@ -63,19 +65,19 @@ class PenSetWidget(QWidget):
         self.penSize.setLayout(self.penSizeLayout)
         # adjust pen size
         self.penSize1 = QPushButton(self.penSize)
-        self.penSize1.setIcon(QIcon("../icons/pensize1.png"))
+        self.penSize1.setIcon(QIcon(":/resource/icon/pensize1.png"))
         self.penSize1.setObjectName('1')
         self.penSize1.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize1.setCheckable(True)
 
         self.penSize2 = QPushButton(self.penSize)
-        self.penSize2.setIcon(QIcon("../icons/pensize2.png"))
+        self.penSize2.setIcon(QIcon(":/resource/icon/pensize2.png"))
         self.penSize2.setObjectName('2')
         self.penSize2.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize2.setCheckable(True)
 
         self.penSize3 = QPushButton(self.penSize)
-        self.penSize3.setIcon(QIcon("../icons/pensize3.png"))
+        self.penSize3.setIcon(QIcon(":/resource/icon/pensize3.png"))
         self.penSize3.setObjectName('3')
         self.penSize3.setFixedSize(self.iconWidth, self.iconHeight)
         self.penSize3.setCheckable(True)
