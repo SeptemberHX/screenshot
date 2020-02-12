@@ -1,7 +1,6 @@
-from PyQt5.Qt import *
-from PyQt5.QtCore import QObject, pyqtSignal
-from sys import argv
-from constant import *
+from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton
+
 
 class TextInput(QWidget):
     # used when input text

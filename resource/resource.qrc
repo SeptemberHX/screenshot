@@ -1,0 +1,18 @@
+<RCC>
+    <qresource prefix="/resource">
+        <file>icon/arrow.png</file>
+        <file>icon/check.png</file>
+        <file>icon/close.png</file>
+        <file>icon/ellipse.png</file>
+        <file>icon/layer1.png</file>
+        <file>icon/line.png</file>
+        <file>icon/pen.png</file>
+        <file>icon/pensize1.png</file>
+        <file>icon/pensize2.png</file>
+        <file>icon/pensize3.png</file>
+        <file>icon/rect.png</file>
+        <file>icon/save.png</file>
+        <file>icon/text.png</file>
+        <file>icon/undo.png</file>
+    </qresource>
+</RCC>

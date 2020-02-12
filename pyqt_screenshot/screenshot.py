@@ -1,14 +1,12 @@
 #!/usr/bin/python3
+from PyQt5.QtCore import QRect, QPoint, QRectF, QSize, QLineF, QPointF
+from PyQt5.QtGui import QColor, QPainterPath, QKeySequence, QGuiApplication, QPixmap, QPen, QBrush, QImage, QPainter, \
+    QPolygonF, QClipboard
+from PyQt5.QtWidgets import QGraphicsView, QApplication, QGraphicsScene, QShortcut
 
-from PyQt5.Qt import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-import sys
-
-from constant import *
-from toolbar import *
-from colorbar import *
-from textinput import *
+from pyqt_screenshot.toolbar import *
+from pyqt_screenshot.colorbar import *
+from pyqt_screenshot.textinput import *
 
 from math import *
 
@@ -443,10 +441,7 @@ class MainWindow(QGraphicsView):
         painter.end()
 
         if clipboard:
-            # QGuiApplication.clipboard().setImage(image, QClipboard.Clipboard)
-            self.clipboard.setText('This is a test')
-            print(QApplication.clipboard().text())
-            # It doesn't work here, I don't know why.
+            QGuiApplication.clipboard().setImage(image, QClipboard.Clipboard)
         else:
             image.save(fileName, picType, 10)
 
@@ -473,18 +468,18 @@ class MainWindow(QGraphicsView):
         mask = QColor(0, 0, 0, 155)
 
         if self.selectedArea == QRect():
-            self.graphicsScene.addRect(0, 0, self.screenPixel.width(), self.screenPixel.height(), mask, mask)
+            self.graphicsScene.addRect(0, 0, self.screenPixel.width(), self.screenPixel.height(), QPen(Qt.NoPen), mask)
         else:
-            self.graphicsScene.addRect(0, 0, self.screenPixel.width(), topRightPoint.y(), mask, mask)
-            self.graphicsScene.addRect(0, topLeftPoint.y(), topLeftPoint.x(), rect.height(), mask, mask)
-            self.graphicsScene.addRect(topRightPoint.x() + 1, topRightPoint.y(),
+            self.graphicsScene.addRect(0, 0, self.screenPixel.width(), topRightPoint.y(), QPen(Qt.NoPen), mask)
+            self.graphicsScene.addRect(0, topLeftPoint.y(), topLeftPoint.x(), rect.height(), QPen(Qt.NoPen), mask)
+            self.graphicsScene.addRect(topRightPoint.x(), topRightPoint.y(),
                                        self.screenPixel.width() - topRightPoint.x(),
                                        rect.height(),
-                                       mask,
+                                       QPen(Qt.NoPen),
                                        mask)
-            self.graphicsScene.addRect(0, bottomLeftPoint.y() + 1,
+            self.graphicsScene.addRect(0, bottomLeftPoint.y(),
                                        self.screenPixel.width(), self.screenPixel.height() - bottomLeftPoint.y(),
-                                       mask, mask)
+                                       QPen(Qt.NoPen), mask)
 
         # draw the magnifier
         if self.action == ACTION_SELECT:
@@ -817,12 +812,3 @@ class MainWindow(QGraphicsView):
 
     def changeFont(self, font):
         self.fontNow = font
-
-
-if __name__ == "__main__":
-    qtApp = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    # window.test()
-
-    qtApp.exec()

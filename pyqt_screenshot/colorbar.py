@@ -1,7 +1,8 @@
-from PyQt5.Qt import *
-from sys import argv
-from constant import *
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QFrame, QButtonGroup, QGridLayout, QFontDialog
+
+from pyqt_screenshot.constant import *
+from PyQt5.QtCore import pyqtSignal, Qt
 
 
 class PenSetWidget(QWidget):
@@ -184,11 +185,3 @@ class PenSetWidget(QWidget):
             self.changeFontButton.setText('{0} {1}'.format(font[0].family(),
                                                            font[0].pointSize()))
             self.fontChangeTrigger.emit(font[0])
-
-if __name__ == '__main__':
-    a = QApplication(argv)
-
-    test = PenSetWidget()
-    test.show()
-
-    a.exec_()
