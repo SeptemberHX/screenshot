@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-from PyQt5.QtCore import QRect, QPoint, QRectF, QSize, QLineF, QPointF
+from PyQt5.QtCore import QRect, QPoint, QRectF, QSize, QLineF, QPointF, QEventLoop
 from PyQt5.QtGui import QColor, QPainterPath, QKeySequence, QGuiApplication, QPixmap, QPen, QBrush, QImage, QPainter, \
     QPolygonF, QClipboard
-from PyQt5.QtWidgets import QGraphicsView, QApplication, QGraphicsScene, QShortcut
+from PyQt5.QtWidgets import QGraphicsView, QApplication, QGraphicsScene, QShortcut, QFileDialog, QDialog
 
 from pyqt_screenshot.toolbar import *
 from pyqt_screenshot.colorbar import *
@@ -13,12 +13,17 @@ from math import *
 qtApp = None
 
 
-class MainWindow(QGraphicsView):
+class Screenshot(QGraphicsView):
     """ Main Class """
 
-    def __init__(self):
-        """ Init the main class """
-        QWidget.__init__(self)
+    screen_shot_grabed = pyqtSignal(QImage)
+    widget_closed = pyqtSignal()
+
+    def __init__(self, flags=constant.DEFAULT, parent=None):
+        """
+        flags: binary flags. see the flags in the constant.py
+        """
+        super().__init__(parent)
 
         # Init
         self.penColorNow = QColor(PENCOLOR)
@@ -44,6 +49,9 @@ class MainWindow(QGraphicsView):
         self.itemsToRemove = []  # the items that should not draw on screenshot picture
         self.textPosition = None
 
+        # result
+        self.target_img = None
+
         # Init window
         self.getscreenshot()
 
@@ -56,12 +64,16 @@ class MainWindow(QGraphicsView):
         self.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet("QGraphicsView { border-style: none; }")
 
-        self.tooBar = MyToolBar(self)
+        self.tooBar = MyToolBar(flags, self)
         self.tooBar.trigger.connect(self.changeAction)
-        self.penSetBar = PenSetWidget(self)
-        self.penSetBar.penSizeTrigger.connect(self.changePenSize)
-        self.penSetBar.penColorTrigger.connect(self.changePenColor)
-        self.penSetBar.fontChangeTrigger.connect(self.changeFont)
+
+        self.penSetBar = None
+        if flags & constant.RECT or flags & constant.ELLIPSE or flags & constant.LINE or flags & constant.FREEPEN \
+                or flags & constant.ARROW or flags & constant.TEXT:
+            self.penSetBar = PenSetWidget(self)
+            self.penSetBar.penSizeTrigger.connect(self.changePenSize)
+            self.penSetBar.penColorTrigger.connect(self.changePenColor)
+            self.penSetBar.fontChangeTrigger.connect(self.changeFont)
 
         self.textInput = TextInput(self)
         self.textInput.inputChanged.connect(self.textChange)
@@ -75,6 +87,17 @@ class MainWindow(QGraphicsView):
 
         QShortcut(QKeySequence('ctrl+s'), self).activated.connect(self.saveScreenshot)
         QShortcut(QKeySequence('esc'), self).activated.connect(self.close)
+
+    @staticmethod
+    def take_screenshot(flags):
+        loop = QEventLoop()
+        screen_shot = Screenshot(flags)
+        screen_shot.show()
+        screen_shot.widget_closed.connect(loop.quit)
+
+        loop.exec()
+        img = screen_shot.target_img
+        return img
 
     def getscreenshot(self):
         screen = QGuiApplication.primaryScreen()
@@ -368,8 +391,8 @@ class MainWindow(QGraphicsView):
         watchAreaPixmap = self.screenPixel.copy(watchArea)
 
         # second, calculate the magnifier area
-        magnifierAreaWidth = watchAreaWidth * 5
-        magnifierAreaHeight = watchAreaHeight * 5
+        magnifierAreaWidth = watchAreaWidth * 10
+        magnifierAreaHeight = watchAreaHeight * 10
         fontAreaHeight = 40
 
         cursorSize = 24
@@ -400,17 +423,17 @@ class MainWindow(QGraphicsView):
 
         # draw information
         self.graphicsScene.addRect(QRectF(magnifierArea.bottomLeft(),
-                                          magnifierArea.bottomRight() + QPoint(0, fontAreaHeight)),
+                                          magnifierArea.bottomRight() + QPoint(0, fontAreaHeight + 30)),
                                    Qt.black,
                                    QBrush(Qt.black))
         rgbInfo = self.graphicsScene.addSimpleText(
             ' Rgb: ({0}, {1}, {2})'.format(pointRgb.red(), pointRgb.green(), pointRgb.blue()))
-        rgbInfo.setPos(magnifierArea.bottomLeft() + QPoint(0, 2))
+        rgbInfo.setPos(magnifierArea.bottomLeft() + QPoint(0, 5))
         rgbInfo.setPen(QPen(QColor(255, 255, 255), 2))
 
         rect = self.selectedArea.normalized()
         sizeInfo = self.graphicsScene.addSimpleText(' Size: {0} x {1}'.format(rect.width(), rect.height()))
-        sizeInfo.setPos(magnifierArea.bottomLeft() + QPoint(0, 2) + QPoint(0, fontAreaHeight / 2))
+        sizeInfo.setPos(magnifierArea.bottomLeft() + QPoint(0, 15) + QPoint(0, fontAreaHeight / 2))
         sizeInfo.setPen(QPen(QColor(255, 255, 255), 2))
 
     def saveScreenshot(self, clipboard=False, fileName='screenshot.png', picType='png'):
@@ -444,6 +467,8 @@ class MainWindow(QGraphicsView):
             QGuiApplication.clipboard().setImage(image, QClipboard.Clipboard)
         else:
             image.save(fileName, picType, 10)
+        self.target_img = image
+        self.screen_shot_grabed.emit(image)
 
     def redraw(self):
         self.graphicsScene.clear()
@@ -481,40 +506,38 @@ class MainWindow(QGraphicsView):
                                        self.screenPixel.width(), self.screenPixel.height() - bottomLeftPoint.y(),
                                        QPen(Qt.NoPen), mask)
 
-        # draw the magnifier
-        if self.action == ACTION_SELECT:
-            self.drawMagnifier()
-            if self.mousePressed:
-                self.drawSizeInfo()
-
-        if self.action == ACTION_MOVE_SELECTED:
-            self.drawSizeInfo()
-
         # draw the toolBar
         if self.action != ACTION_SELECT:
             spacing = 5
+            # show the toolbar first, then move it to the correct position
+            # because the width of it may be wrong if this is the first time it shows
+            self.tooBar.show()
+
             dest = QPointF(rect.bottomRight() - QPointF(self.tooBar.width(), 0) - QPointF(spacing, -spacing))
             if dest.x() < spacing:
                 dest.setX(spacing)
-            if dest.y() + self.tooBar.height() >= self.screenPixel.height():
-                if rect.top() - self.tooBar.height() < spacing:
+            pen_set_bar_height = self.penSetBar.height() if self.penSetBar is not None else 0
+            if dest.y() + self.tooBar.height() + pen_set_bar_height >= self.screenPixel.height():
+                if rect.top() - self.tooBar.height() - pen_set_bar_height < spacing:
                     dest.setY(rect.top() + spacing)
                 else:
-                    dest.setY(rect.top() - self.tooBar.height() - spacing)
+                    dest.setY(rect.top() - self.tooBar.height() - pen_set_bar_height - spacing)
 
             self.tooBar.move(dest.toPoint())
-            self.penSetBar.move(dest.toPoint() + QPoint(0, self.tooBar.height() + spacing))
-            self.tooBar.show()
-            self.penSetBar.show()
 
-            if self.action == ACTION_TEXT:
-                self.penSetBar.showFontWidget()
-            else:
-                self.penSetBar.showPenWidget()
+            if self.penSetBar is not None:
+                self.penSetBar.show()
+                self.penSetBar.move(dest.toPoint() + QPoint(0, self.tooBar.height() + spacing))
 
+                if self.action == ACTION_TEXT:
+                    self.penSetBar.showFontWidget()
+                else:
+                    self.penSetBar.showPenWidget()
         else:
             self.tooBar.hide()
-            self.penSetBar.hide()
+
+            if self.penSetBar is not None:
+                self.penSetBar.hide()
 
         # draw the list
         for step in self.drawListResult:
@@ -576,6 +599,15 @@ class MainWindow(QGraphicsView):
             self.textInput.move(position)
             self.textInput.show()
             # self.textInput.getFocus()
+
+        # draw the magnifier
+        if self.action == ACTION_SELECT:
+            self.drawMagnifier()
+            if self.mousePressed:
+                self.drawSizeInfo()
+
+        if self.action == ACTION_MOVE_SELECTED:
+            self.drawSizeInfo()
 
     # deal with every step in drawList
     def drawOneStep(self, step):
@@ -643,8 +675,8 @@ class MainWindow(QGraphicsView):
 
     # draw the size information on the top left corner
     def drawSizeInfo(self):
-        sizeInfoAreaWidth = 100
-        sizeInfoAreaHeight = 20
+        sizeInfoAreaWidth = 200
+        sizeInfoAreaHeight = 30
         spacing = 5
         rect = self.selectedArea.normalized()
         sizeInfoArea = QRect(rect.left(), rect.top() - spacing - sizeInfoAreaHeight,
@@ -659,11 +691,12 @@ class MainWindow(QGraphicsView):
         if sizeInfoArea.top() < spacing:
             sizeInfoArea.moveTop(spacing)
 
-        self.graphicsScene.addRect(QRectF(sizeInfoArea), Qt.black, QBrush(Qt.black))
+        self.itemsToRemove.append(self.graphicsScene.addRect(QRectF(sizeInfoArea), Qt.white, QBrush(Qt.black)))
 
         sizeInfo = self.graphicsScene.addSimpleText('  {0} x {1}'.format(rect.width(), rect.height()))
         sizeInfo.setPos(sizeInfoArea.topLeft() + QPoint(0, 2))
         sizeInfo.setPen(QPen(QColor(255, 255, 255), 2))
+        self.itemsToRemove.append(sizeInfo)
 
     def drawRect(self, x1, x2, y1, y2, result):
         rect = self.selectedArea.normalized()
@@ -749,7 +782,8 @@ class MainWindow(QGraphicsView):
             self.selectedArea = QRect()
             self.selectedAreaRaw = QRect()
             self.tooBar.hide()
-            self.penSetBar.hide()
+            if self.penSetBar is not None:
+                self.penSetBar.hide()
         else:
             self.drawListResult.pop()
         self.redraw()
@@ -761,6 +795,13 @@ class MainWindow(QGraphicsView):
         else:
             self.saveScreenshot(False, filename[0], filename[1][2:])
             self.close()
+
+    def close(self):
+        self.widget_closed.emit()
+        super().close()
+        self.tooBar.close()
+        if self.penSetBar is not None:
+            self.penSetBar.close()
 
     def saveToClipboard(self):
         QApplication.clipboard().setText('Test in save function')

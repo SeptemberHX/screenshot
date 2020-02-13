@@ -2,6 +2,19 @@
 constants
 """
 
+# screenshot flags
+RECT            = 0b00000001
+ELLIPSE         = 0b00000010
+ARROW           = 0b00000100
+LINE            = 0b00001000
+FREEPEN         = 0b00010000
+TEXT            = 0b00100000
+CLIPBOARD       = 0b01000000
+SAVE_TO_FILE    = 0b10000000
+
+DEFAULT         = 0b01000000
+
+# action
 ACTION_SELECT = 0
 ACTION_MOVE_SELECTED = 1
 ACTION_RECT = 20
@@ -32,7 +45,7 @@ class MousePosition:
     WAIT_FOR_SELECT = 40
 
 
-# the range of judging if your mouse is on the side of selected area
+# the range of judging if your mouse is on the border of selected area
 ERRORRANGE = 6
 
 PENCOLOR = '#ff0000'  # red

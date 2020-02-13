@@ -1,5 +1,6 @@
 from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QFrame, QButtonGroup, QGridLayout, QFontDialog
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QFrame, QButtonGroup, QGridLayout, QFontDialog, \
+    QSizePolicy
 
 from pyqt_screenshot.constant import *
 from PyQt5.QtCore import pyqtSignal, Qt
@@ -14,12 +15,13 @@ class PenSetWidget(QWidget):
     fontChangeTrigger = pyqtSignal(QFont)
 
     def __init__(self, parent=None):
-        super(PenSetWidget, self).__init__(parent)
+        super().__init__(parent)
 
-        self.setWindowFlags(Qt.ToolTip)
         self.paddingX = 5
         self.paddingY = 2
-        self.iconWidth = self.iconHeight = 28
+        self.iconWidth = self.iconHeight = 48
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.setWindowFlags(Qt.ToolTip)
 
         self.initWindows()
 
@@ -43,7 +45,6 @@ class PenSetWidget(QWidget):
         self.setLayout(self.mainLayout)
         self.mainLayout.setSpacing(0)
         self.mainLayout.setContentsMargins(5, 2, 5, 2)
-        self.setFixedWidth(300)
 
         self.initPenSizeButtons()
         self.initFontWidget()
