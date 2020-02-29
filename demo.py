@@ -1,10 +1,12 @@
 import sys
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QApplication, QLabel
 from pyqt_screenshot.screenshot import Screenshot, constant
 
 if __name__ == "__main__":
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     qtApp = QApplication(sys.argv)
 
     main_window = QLabel()

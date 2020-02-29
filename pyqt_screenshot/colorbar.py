@@ -19,7 +19,7 @@ class PenSetWidget(QWidget):
 
         self.paddingX = 5
         self.paddingY = 2
-        self.iconWidth = self.iconHeight = 48
+        self.iconWidth = self.iconHeight = 24
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.setWindowFlags(Qt.ToolTip)
 

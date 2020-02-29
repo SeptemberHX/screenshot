@@ -20,7 +20,7 @@ class MyToolBar(QWidget):
         self.setWindowFlags(Qt.ToolTip)
         self.paddingX = 5
         self.paddingY = 2
-        self.iconWidth = self.iconHeight = 56
+        self.iconWidth = self.iconHeight = 28
         self.setFixedHeight(self.iconHeight + 2 * self.paddingY)
         # self.setFixedWidth(300)
 

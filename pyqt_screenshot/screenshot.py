@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from PyQt5.QtCore import QRect, QPoint, QRectF, QSize, QLineF, QPointF, QEventLoop
 from PyQt5.QtGui import QColor, QPainterPath, QKeySequence, QGuiApplication, QPixmap, QPen, QBrush, QImage, QPainter, \
-    QPolygonF, QClipboard
+    QPolygonF, QClipboard, QCursor, QMouseEvent
 from PyQt5.QtWidgets import QGraphicsView, QApplication, QGraphicsScene, QShortcut, QFileDialog, QDialog
 
 from pyqt_screenshot.toolbar import *
@@ -54,8 +54,6 @@ class Screenshot(QGraphicsView):
 
         # Init window
         self.getscreenshot()
-
-        self.showFullScreen()
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
 
         self.setMouseTracking(True)
@@ -80,9 +78,16 @@ class Screenshot(QGraphicsView):
         self.textInput.cancelPressed.connect(self.cancelInput)
         self.textInput.okPressed.connect(self.okInput)
 
+        print('======>>> {0}, {1}'.format(self.screenPixel.width(), self.screenPixel.height()))
         self.graphicsScene = QGraphicsScene(0, 0, self.screenPixel.width(), self.screenPixel.height())
 
+        self.show()
         self.setScene(self.graphicsScene)
+        self.windowHandle().setScreen(QGuiApplication.screenAt(QCursor.pos()))
+        self.scale = self.get_scale()
+        # self.setFixedSize(self.screenPixel.width(), self.screenPixel.height())
+        self.setGeometry(QGuiApplication.screenAt(QCursor.pos()).geometry())
+        self.showFullScreen()
         self.redraw()
 
         QShortcut(QKeySequence('ctrl+s'), self).activated.connect(self.saveScreenshot)
@@ -100,7 +105,7 @@ class Screenshot(QGraphicsView):
         return img
 
     def getscreenshot(self):
-        screen = QGuiApplication.primaryScreen()
+        screen = QGuiApplication.screenAt(QCursor.pos())
         self.screenPixel = screen.grabWindow(0)
 
     def mousePressEvent(self, event):
@@ -147,13 +152,13 @@ class Screenshot(QGraphicsView):
                     self.textRect = None
                     self.redraw()
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event: QMouseEvent):
         """
         :type event: QMouseEvent
         :param event:
         :return:
         """
-        self.mousePoint = QPoint(event.x(), event.y())
+        self.mousePoint = QPoint(event.globalPos().x(), event.globalPos().y())
 
         if self.action is None:
             self.action = ACTION_SELECT
@@ -370,12 +375,14 @@ class Screenshot(QGraphicsView):
 
     def drawMagnifier(self):
         # First, calculate the magnifier position due to the mouse position
-        watchAreaWidth = 32
-        watchAreaHeight = 28
+        watchAreaWidth = 16
+        watchAreaHeight = 16
         watchAreaPixmap = QPixmap()
 
-        watchArea = QRect(QPoint(self.mousePoint.x() - watchAreaWidth / 2, self.mousePoint.y() - watchAreaHeight / 2),
-                          QPoint(self.mousePoint.x() + watchAreaWidth / 2, self.mousePoint.y() + watchAreaHeight / 2))
+        cursor_pos = self.mousePoint
+
+        watchArea = QRect(QPoint(cursor_pos.x() - watchAreaWidth / 2, cursor_pos.y() - watchAreaHeight / 2),
+                          QPoint(cursor_pos.x() + watchAreaWidth / 2, cursor_pos.y() + watchAreaHeight / 2))
         if watchArea.left() < 0:
             watchArea.moveLeft(0)
             watchArea.moveRight(watchAreaWidth)
@@ -388,6 +395,10 @@ class Screenshot(QGraphicsView):
         if self.mousePoint.y() + watchAreaHeight / 2 >= self.screenPixel.height():
             watchArea.moveBottom(self.screenPixel.height() - 1)
             watchArea.moveTop(watchArea.bottom() - watchAreaHeight)
+
+        # tricks to solve the hidpi impact on QCursor.pos()
+        watchArea.setTopLeft(QPoint(watchArea.topLeft().x() * self.scale, watchArea.topLeft().y() * self.scale))
+        watchArea.setBottomRight(QPoint(watchArea.bottomRight().x() * self.scale, watchArea.bottomRight().y() * self.scale))
         watchAreaPixmap = self.screenPixel.copy(watchArea)
 
         # second, calculate the magnifier area
@@ -396,16 +407,16 @@ class Screenshot(QGraphicsView):
         fontAreaHeight = 40
 
         cursorSize = 24
-        magnifierArea = QRectF(QPoint(self.mousePoint.x() + cursorSize, self.mousePoint.y() + cursorSize),
-                               QPoint(self.mousePoint.x() + cursorSize + magnifierAreaWidth,
-                                      self.mousePoint.y() + cursorSize + magnifierAreaHeight))
+        magnifierArea = QRectF(QPoint(QCursor.pos().x() + cursorSize, QCursor.pos().y() + cursorSize),
+                               QPoint(QCursor.pos().x() + cursorSize + magnifierAreaWidth,
+                                      QCursor.pos().y() + cursorSize + magnifierAreaHeight))
         if magnifierArea.right() >= self.screenPixel.width():
-            magnifierArea.moveLeft(self.mousePoint.x() - magnifierAreaWidth - cursorSize / 2)
+            magnifierArea.moveLeft(QCursor.pos().x() - magnifierAreaWidth - cursorSize / 2)
         if magnifierArea.bottom() + fontAreaHeight >= self.screenPixel.height():
-            magnifierArea.moveTop(self.mousePoint.y() - magnifierAreaHeight - cursorSize / 2 - fontAreaHeight)
+            magnifierArea.moveTop(QCursor.pos().y() - magnifierAreaHeight - cursorSize / 2 - fontAreaHeight)
 
         # third, draw the watch area to magnifier area
-        watchAreaScaled = watchAreaPixmap.scaled(QSize(magnifierAreaWidth, magnifierAreaHeight))
+        watchAreaScaled = watchAreaPixmap.scaled(QSize(magnifierAreaWidth * self.scale, magnifierAreaHeight * self.scale))
         magnifierPixmap = self.graphicsScene.addPixmap(watchAreaScaled)
         magnifierPixmap.setOffset(magnifierArea.topLeft())
 
@@ -432,9 +443,15 @@ class Screenshot(QGraphicsView):
         rgbInfo.setPen(QPen(QColor(255, 255, 255), 2))
 
         rect = self.selectedArea.normalized()
-        sizeInfo = self.graphicsScene.addSimpleText(' Size: {0} x {1}'.format(rect.width(), rect.height()))
+        sizeInfo = self.graphicsScene.addSimpleText(' Size: {0} x {1}'.format(rect.width() * self.scale, rect.height() * self.scale))
         sizeInfo.setPos(magnifierArea.bottomLeft() + QPoint(0, 15) + QPoint(0, fontAreaHeight / 2))
         sizeInfo.setPen(QPen(QColor(255, 255, 255), 2))
+
+    def get_scale(self):
+        # tricks to solve the hidpi impact on QCursor.pos()
+        screen = QGuiApplication.screenAt(QCursor.pos())
+        scale = self.screenPixel.width() // screen.geometry().width()
+        return scale
 
     def saveScreenshot(self, clipboard=False, fileName='screenshot.png', picType='png'):
         fullWindow = QRect(0, 0, self.width() - 1, self.height() - 1)
@@ -449,26 +466,16 @@ class Screenshot(QGraphicsView):
             selected.setBottom(self.height() - 1)
 
         source = (fullWindow & selected)
-        target = QRect(selected)
-        target.moveTopLeft(QPoint(0, 0))
-
-        image = QImage(source.size(), QImage.Format_RGB32)
-        painter = QPainter()
-        painter.begin(image)
-
-        # remove the selected rect and drag points
-        for junk in self.itemsToRemove:
-            self.graphicsScene.removeItem(junk)
-
-        self.graphicsScene.render(painter, QRectF(target), QRectF(source))
-        painter.end()
+        source.setTopLeft(QPoint(source.topLeft().x() * self.scale, source.topLeft().y() * self.scale))
+        source.setBottomRight(QPoint(source.bottomRight().x() * self.scale, source.bottomRight().y() * self.scale))
+        image = self.screenPixel.copy(source)
 
         if clipboard:
             QGuiApplication.clipboard().setImage(image, QClipboard.Clipboard)
         else:
             image.save(fileName, picType, 10)
         self.target_img = image
-        self.screen_shot_grabed.emit(image)
+        self.screen_shot_grabed.emit(QImage(image))
 
     def redraw(self):
         self.graphicsScene.clear()
@@ -517,7 +524,7 @@ class Screenshot(QGraphicsView):
             if dest.x() < spacing:
                 dest.setX(spacing)
             pen_set_bar_height = self.penSetBar.height() if self.penSetBar is not None else 0
-            if dest.y() + self.tooBar.height() + pen_set_bar_height >= self.screenPixel.height():
+            if dest.y() + self.tooBar.height() + pen_set_bar_height >= self.height():
                 if rect.top() - self.tooBar.height() - pen_set_bar_height < spacing:
                     dest.setY(rect.top() + spacing)
                 else:
@@ -693,7 +700,7 @@ class Screenshot(QGraphicsView):
 
         self.itemsToRemove.append(self.graphicsScene.addRect(QRectF(sizeInfoArea), Qt.white, QBrush(Qt.black)))
 
-        sizeInfo = self.graphicsScene.addSimpleText('  {0} x {1}'.format(rect.width(), rect.height()))
+        sizeInfo = self.graphicsScene.addSimpleText('  {0} x {1}'.format(rect.width() * self.scale, rect.height() * self.scale))
         sizeInfo.setPos(sizeInfoArea.topLeft() + QPoint(0, 2))
         sizeInfo.setPen(QPen(QColor(255, 255, 255), 2))
         self.itemsToRemove.append(sizeInfo)
